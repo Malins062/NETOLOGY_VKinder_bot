@@ -1,2 +1,2 @@
-# NETOLOGY_VKinder_bot
-Дипломная работа по модулю "Профессиональная работа с Python" - VKinder
+# VKinder-bot
+Чат-бот на сетевом ресурсе ВКонтакте - VKinder

@@ -1,0 +1,36 @@
+{
+  "99": {
+    "message_text": "Я помогу Вам найти друга, анализируя ваше и его местоположение, возраст и семейное положение, ТОП-3 фото.\nкого будем искать?",
+    "keyboard": {
+      "one_time": false,
+      "inline": true,
+      "buttons": [
+        [
+          {
+            "action": {
+              "type": "text",
+              "label": "Найди мужчин"
+            },
+            "color": "positive"
+          },
+          {
+            "action": {
+              "type": "text",
+              "label": "Найди девушек"
+            },
+            "color": "positive"
+          }
+        ],
+        [
+          {
+            "action": {
+              "type": "text",
+              "label": "Найди друзей и подруг"
+            },
+            "color": "primary"
+          }
+        ]
+      ]
+    }
+  }
+}

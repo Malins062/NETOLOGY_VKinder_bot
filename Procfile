@@ -1,0 +1,1 @@
+work: python vkbot.py
