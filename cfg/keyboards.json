@@ -1,0 +1,324 @@
+{
+  "99": {
+    "message_text": "Жду команды. Что сделать, кого найти?",
+    "keyboard": {
+      "one_time": false,
+      "inline": false,
+      "buttons": [
+        [
+          {
+            "action": {
+              "type": "text",
+              "label": "Мужчин"
+            },
+            "color": "primary"
+          },
+          {
+            "action": {
+              "type": "text",
+              "label": "Женщин"
+            },
+            "color": "primary"
+          },
+          {
+            "action": {
+              "type": "text",
+              "label": "Друзей"
+            },
+            "color": "primary"
+          }
+        ],
+        [
+          {
+            "action": {
+              "type": "text",
+              "label": "Вывести список избранных контактов"
+            },
+            "color": "positive"
+          }
+        ],
+        [
+          {
+            "action": {
+              "type": "text",
+              "label": "Личный кабинет"
+            },
+            "color": "secondary"
+          },
+          {
+            "action": {
+              "type": "text",
+              "label": "Помощь"
+            },
+            "color": "secondary"
+          }
+        ]
+      ]
+    }
+  },
+  "80": {
+    "message_text": "Команды управления личным кабинетом\nЖду команды...",
+    "keyboard": {
+      "one_time": false,
+      "inline": true,
+      "buttons": [
+        [
+          {
+            "action": {
+              "type": "text",
+              "label": "Очистить список избранных контактов"
+            },
+            "color": "negative"
+          }
+        ],
+        [
+          {
+            "action": {
+              "type": "text",
+              "label": "Вывести черный список"
+            },
+            "color": "primary"
+          }
+        ],
+        [
+          {
+            "action": {
+              "type": "text",
+              "label": "Очистить черный список"
+            },
+            "color": "negative"
+          }
+        ],
+        [
+          {
+            "action": {
+              "type": "text",
+              "label": "Сброс поиска друзей"
+            },
+            "color": "negative"
+          }
+        ]
+      ]
+    }
+  },
+  "0": {
+    "keyboard": {
+      "one_time": false,
+      "inline": true,
+      "buttons": [
+        [
+          {
+            "action": {
+              "type": "open_link",
+              "label": "Перейти в контакт",
+              "link": ""
+            }
+          }
+        ],
+        [
+          {
+            "action": {
+              "type": "text",
+              "label": "В избранное",
+              "payload": "{\"type\": \"id\"}"
+            },
+            "color": "positive"
+          },
+          {
+            "action": {
+              "type": "text",
+              "label": "В черный список",
+              "payload": "{\"type\": \"id\"}"
+            },
+            "color": "negative"
+          }
+        ],
+        [
+          {
+            "action": {
+              "type": "text",
+              "label": "Искать еще друзей"
+            },
+            "color": "primary"
+          }
+        ]
+      ]
+    }
+  },
+  "1": {
+    "keyboard": {
+      "one_time": false,
+      "inline": true,
+      "buttons": [
+        [
+          {
+            "action": {
+              "type": "open_link",
+              "label": "Перейти в контакт",
+              "link": ""
+            }
+          }
+        ],
+        [
+          {
+            "action": {
+              "type": "text",
+              "label": "В избранное",
+              "payload": "{\"type\": \"id\"}"
+            },
+            "color": "positive"
+          },
+          {
+            "action": {
+              "type": "text",
+              "label": "В черный список",
+              "payload": "{\"type\": \"id\"}"
+            },
+            "color": "negative"
+          }
+        ],
+        [
+          {
+            "action": {
+              "type": "text",
+              "label": "Искать еще женщин"
+            },
+            "color": "primary"
+          }
+        ]
+      ]
+    }
+  },
+  "2": {
+    "keyboard": {
+      "one_time": false,
+      "inline": true,
+      "buttons": [
+        [
+          {
+            "action": {
+              "type": "open_link",
+              "label": "Перейти в контакт",
+              "link": ""
+            }
+          }
+        ],
+        [
+          {
+            "action": {
+              "type": "text",
+              "label": "В избранное",
+              "payload": "{\"type\": \"id\"}"
+            },
+            "color": "positive"
+          },
+          {
+            "action": {
+              "type": "text",
+              "label": "В черный список",
+              "payload": "{\"type\": \"id\"}"
+            },
+            "color": "negative"
+          }
+        ],
+        [
+          {
+            "action": {
+              "type": "text",
+              "label": "Искать еще мужчин"
+            },
+            "color": "primary"
+          }
+        ]
+      ]
+    }
+  },
+  "21": {
+    "keyboard": {
+      "one_time": false,
+      "inline": true,
+      "buttons": [
+        [
+          {
+            "action": {
+              "type": "open_link",
+              "label": "Перейти в контакт",
+              "link": ""
+            }
+          }
+        ],
+        [
+          {
+            "action": {
+              "type": "text",
+              "label": "Удалить из избранного",
+              "payload": "{\"type\": \"id\"}"
+            },
+            "color": "positive"
+          },
+          {
+            "action": {
+              "type": "text",
+              "label": "В черный список",
+              "payload": "{\"type\": \"id\"}"
+            },
+            "color": "negative"
+          }
+        ],
+        [
+          {
+            "action": {
+              "type": "text",
+              "label": "Назад"
+            },
+            "color": "secondary"
+          }
+        ]
+      ]
+    }
+  },
+  "22": {
+    "keyboard": {
+      "one_time": false,
+      "inline": true,
+      "buttons": [
+        [
+          {
+            "action": {
+              "type": "open_link",
+              "label": "Перейти в контакт",
+              "link": ""
+            }
+          }
+        ],
+        [
+          {
+            "action": {
+              "type": "text",
+              "label": "В избранное",
+              "payload": "{\"type\": \"id\"}"
+            },
+            "color": "positive"
+          },
+          {
+            "action": {
+              "type": "text",
+              "label": "Удалить из черного списка",
+              "payload": "{\"type\": \"id\"}"
+            },
+            "color": "negative"
+          }
+        ],
+        [
+          {
+            "action": {
+              "type": "text",
+              "label": "Основные команды"
+            },
+            "color": "secondary"
+          }
+        ]
+      ]
+    }
+  }
+}

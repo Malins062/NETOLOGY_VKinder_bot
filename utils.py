@@ -1,17 +1,18 @@
-import hues
-import re
-import json
+import hues  # для цветного вывода сообщений, + время
+import re  # для нормализации строки
+import json  # для работы json-данными
 
 
 class MessageEventData:
-    __slots__ = ('user_id', 'message_id', 'time', 'message_id', 'text', 'text_normalize')
+    __slots__ = ('user_id', 'message_id', 'time', 'message_id', 'text', 'text_normalize', 'contact_id')
 
-    def __init__(self, uid: int, msg_id: int, dt: int, body: str):
+    def __init__(self, uid: int, msg_id: int, dt: int, body: str, contact_id: str):
         self.user_id = uid
         self.message_id = msg_id
         self.time = dt
         self.text = body
         self.text_normalize = get_normalize_set(self.text)
+        self.contact_id = json.loads(contact_id).get('type', None) if contact_id else ''
 
     def __repr__(self):
         return self.text
@@ -26,7 +27,7 @@ def fatal(*args):
 def progress_indicator(in_title: str, out_title=''):
     """
     Декоратор - индикатор выполнения функции.
-    Выводит надпись с помощью hues, сначала выолнения и после.
+    Выводит надпись с помощью hues, сначала выполнения и после.
     :param in_title: сообщение INFO, перед началом выполнения;
     :param out_title: сообщение типа SUCCESS "OK", после выполнения;
     :return: сообщение типа ERROR - "Err", если произошла ошибка при выполнении.
@@ -39,15 +40,15 @@ def progress_indicator(in_title: str, out_title=''):
                 if in_title:
                     hues.info(in_title)
 
-                # Выполенение функции
+                # Выполнение функции
                 result = _function(*args, **kwargs)
 
                 # Вывод сообщения после выполнением
                 if out_title:
                     hues.success(out_title)
 
-            except BaseException as Err:
-                result = Err
+            except Exception as err:
+                result = err
                 # Вывод сообщения после выполнением
                 hues.error(result)
 
@@ -79,6 +80,6 @@ def read_json(file_name: str) -> dict:
         with open(file_name, encoding='utf-8') as f:
             return json.load(f)
 
-    except Exception as error:
-        print(f'ОШИБКА загрузки необходимых сведений: {error}')
+    except Exception as err:
+        print(f'ОШИБКА загрузки необходимых сведений: {err}')
         print(f'Проверьте наличие данных в файле - {file_name}.')

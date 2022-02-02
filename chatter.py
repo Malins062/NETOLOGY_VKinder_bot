@@ -1,15 +1,16 @@
 from utils import *  # свои дополнительные функции
 import random  # для генерации случайных ответов
-from enum import Enum
 
 
 class Command:
-    __slots__ = ('answer', 'command', 'command_description')
+    __slots__ = ('answer', 'command', 'function', 'command_description', 'contact_id')
 
-    def __init__(self, answer=None, command=-1, commad_description=None):
+    def __init__(self, answer=None, command=-1, function=None, command_description=None, contact_id=None):
         self.answer = answer
         self.command = command
-        self.command_description = commad_description
+        self.command_description = command_description
+        self.function = function
+        self.contact_id = contact_id
 
     def __repr__(self):
         return self.command_description
@@ -24,7 +25,7 @@ class Chatter:
             # Загрузка лексикона
             self.lexicon = read_json(file_name)
 
-            # Создание общего списка словаря запросов и разибение по темам
+            # Создание общего списка словаря запросов и разбиение по темам
             self.questions = self._create_vocabulary()
         except Exception as Err:
             fatal(f'Ошибка загрузки лексикона бота: {Err}')
@@ -76,10 +77,16 @@ class Chatter:
         :return: случайный ответ из прописанных для тем сообщения + команда поиска если она определена для ответа
         """
         cmd = Command()
+
         # Ответ по теме
         cmd.answer = random.choice(self.lexicon['intents'][intent]['responses'])
+
         # Номер команды
         cmd.command = self.lexicon['intents'][intent].get('command', 99)
+
+        # Функция команды
+        cmd.function = self.lexicon['intents'][intent].get('function', None)
+
         # Описание команды
         cmd.command_description = self.lexicon['intents'][intent].get('command_description', 'КОМАНДА НЕ ЗАДАНА')
 
@@ -92,25 +99,31 @@ class Chatter:
         :return: случайная фраза в случае провала подбора ответа ботом
         """
         cmd = Command()
+
         # Случайный ответ на не распознанную тему
         cmd.answer = random.choice(self.lexicon['failure_phrases']['responses'])
+
         # Номер команды
         cmd.command = self.lexicon['failure_phrases'].get('command', 99)
+
+        # Функция команды
+        cmd.function = self.lexicon['failure_phrases'].get('function', None)
+
         # Описание команды
         cmd.command_description = self.lexicon['failure_phrases'].get('command_description', None)
 
         return cmd
 
 
-class Answers:
-    __slots__ = 'answers'
+class Keyboards:
+    __slots__ = 'keyboard'
 
     def __init__(self, file_name):
         try:
-            # Загрузка параметров ответа на команды
-            self.answers = read_json(file_name)
+            # Загрузка параметров клавиатуры для ответа на команды
+            self.keyboard = read_json(file_name)
 
-            for key, value in self.answers.items():
+            for key, value in self.keyboard.items():
                 if value.get('keyboard', None):
                     value['keyboard'] = json.dumps(value['keyboard'], ensure_ascii=True)
 

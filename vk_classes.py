@@ -4,26 +4,27 @@ from utils import *  # свои дополнительные функции
 
 
 class VKUser:
-    __slots__ = ('data', 'search')
-    # __slots__ = ('user_id', 'screen_name', 'bdate', 'sex', 'relation', 'status', 'home_town',
-    #              'city', 'first_name', 'last_name', 'name')
+    __slots__ = ('data', 'vk_api_object', 'user_id')
 
     def __init__(self, vk_api_object: VkApiMethod, uid):
-        self.search = {
-            'offset': 0
-        }
+        self.vk_api_object = vk_api_object  # объект для доступа к запросам ВК
+        self.data = None
+        self.user_id = uid
+
+    def get_user_data(self):
         params = {
-            'user_id': uid,
+            'user_id': self.user_id,
             'fields': 'screen_name, bdate, sex, relation, status, home_town, city'
         }
         try:
-            self.data = vk_api_object.users.get(**params)[0]
+            # Данные пользователя ВК
+            self.data = self.vk_api_object.users.get(**params)[0]
+
+            if self.data.get('first_name', None) and self.data.get('first_name', None):
+                self.data['name'] = f'{self.data["first_name"]} {self.data["last_name"]}'
+
         except Exception as Err:
             self.data = Err
-            return
-
-        if self.data.get('first_name', None) and self.data.get('first_name', None):
-            self.data['name'] = f'{self.data["first_name"]} {self.data["last_name"]}'
 
 
 class VKSearcher:
@@ -39,9 +40,9 @@ class VKSearcher:
 
     def get_users_search(self, **kwargs):
         """
-        Поиск пользователей ВК по критериям которые необходимо вытащить
+        Поиск пользователей ВК по критериям которые необходимо вытащить.
         :param kwargs: параметры запроса (пол, возраст, город, семейное положение...)
-        :return: спписок пользователей
+        :return: список пользователей
         """
         # Получение сведений из ВК методом users.search
         result = self.vk.users.search(**kwargs)
@@ -72,6 +73,9 @@ class VKSearcher:
 
 
 class VKSender:
+    """
+    Класс для отправки сообщений с помощью библиотеки vk_api
+    """
 
     # Флаг отсутствия клавиатуры к сообщению
     NONE_KEY_BOARD = '{\n "one_time": true,\n "buttons": []\n}'
