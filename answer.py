@@ -1,7 +1,5 @@
 from datetime import date
 
-import hues
-
 from vk_classes import VKSender, VKSearcher, VKUser
 from chatter import Command, Keyboards
 
@@ -16,6 +14,9 @@ class MessageAnswer:
         self.count_records = count_records
         self.access_key = access_key
         self.db = db
+        self.params_receiver = {
+            'receiver_user_id': self.user.data['id']
+        }
 
         self.answer = answer
         self.answer_params = self.answer.keyboard.get(str(self.cmd.command), None)
@@ -27,21 +28,17 @@ class MessageAnswer:
         if self.cmd.command != 99:
             getattr(self, self.cmd.function)()  # отправка сообщения, согласно выбранной команде
 
-        self.answer_params = self.answer.keyboard.get('99', None)  # подготовка клавиатуры
         self.send_main_answer()  # отправка основного меню
 
     def send_message(self, message_text):
         params = {
-            'receiver_user_id': self.user.data['id'],
             'message_text': message_text
         }
-        self.sender.send_message(**params)
+        self.sender.send_message(**self.params_receiver, **params)
 
     def send_main_answer(self):
-        params = {
-            'receiver_user_id': self.user.data['id']
-        }
-        self.sender.send_message(**params, **self.answer_params)
+        params = self.answer.keyboard.get('99', None)  # подготовка клавиатуры
+        self.sender.send_message(**self.params_receiver, **params)
 
     def add_favorite(self):
         self.send_message(self.db.add_favorite(self.cmd.contact_id))
@@ -65,23 +62,49 @@ class MessageAnswer:
     def clear_blacklist(self):
         self.send_message(self.db.clear_blacklist())
 
-    def _list_contacts(self, _list_contacts):
-        for vk_id in _list_contacts:
-            # Получение данных о контакте
-            user = VKUser(self.user.vk_api_object, vk_id)
-            user.get_user_data()
+    def update_user(self):
+        self.send_message(self.db.clear_user())
 
-            if user.data.get('id', False):
-                contact = user.data
-                photos = self._get_user_photos(contact['id'])
-                if photos:
-                    contact.update(photos)
+    def account_user(self):
+        _LINE = '-' * 70 + '\n'
+        message = _LINE
+        message += self.answer_params.get('message_text', '')  # подготовка клавиатуры
+        data = self.db.get_user()  # получение текущей информации пользователя
+        message += self._user_info(data) if data else '\nЛичные данные пользователя не найдены!\n'
+        message += '\nЖду от Вас команды:'
+        params = {
+            'message_text': message,
+            'keyboard': self.answer_params.get('keyboard', None)
+        }
 
-                # Установка параметров сообщения
-                sender_params = self.set_message_friend(contact)
+        self.sender.send_message(**self.params_receiver, **params)
 
-                # Отправка сообщения
-                self.sender.send_message(**sender_params)
+    def _user_info(self, _dict: dict) -> str:
+        _EMPTY_DATA = 'Не указано'
+
+        message = '\nID: ' + str(_dict.get('id', _EMPTY_DATA))
+        message += '\nИмя: ' + _dict.get('first_name', _EMPTY_DATA)
+        message += '\nФамилия: ' + _dict.get('last_name', _EMPTY_DATA)
+        message += '\nДата рождения: ' + _dict.get('bdate', _EMPTY_DATA)
+
+        message += '\nПол: '
+        value = str(_dict.get('sex', 0))
+        value = self.searcher.guide['sex'].get(value, None)
+        message += value if value else _EMPTY_DATA
+
+        message += '\nГород: '
+        value = _dict.get('city', None)
+        message += _dict['city']['title'] if value else _EMPTY_DATA
+        message += '\nРодной город: ' + _dict.get('home_town', _EMPTY_DATA)
+
+        message += '\nСемейное положение: '
+        value = str(_dict.get('relation', 0))
+        value = self.searcher.guide['relation'].get(value, None)
+        message += value if value else _EMPTY_DATA
+
+        message += '\n'
+
+        return message
 
     def list_favorites(self):
         contacts = self.db.get_favorites()  # получение списка id избранных контактов
@@ -103,6 +126,24 @@ class MessageAnswer:
         else:
             self.send_message('В "черном" списке контактов пока никого нет.')
 
+    def _list_contacts(self, _list_contacts):
+        for vk_id in _list_contacts:
+            # Получение данных о контакте
+            user = VKUser(self.user.vk_api_object, vk_id)
+            user.get_user_data()
+
+            if user.data.get('id', False):
+                contact = user.data
+                photos = self._get_user_photos(contact['id'])
+                if photos:
+                    contact.update(photos)
+
+                # Установка параметров сообщения
+                sender_params = self.set_message_friend(contact)
+
+                # Отправка сообщения
+                self.sender.send_message(**sender_params)
+
     def search_friends(self):
         cnt_finds = 0
         founded_friends = []
@@ -113,8 +154,12 @@ class MessageAnswer:
                                         offset,
                                         self.count_records)
 
-            # self.user.search['offset'] += len(friends)
-            offset += len(friends)
+            cnt_friends = len(friends)
+            if cnt_friends > 0:
+                offset += cnt_friends
+            else:
+                break
+
             self.db.update_offset(self.cmd.command, offset)
 
             friends = self.check_friends(friends)
@@ -125,6 +170,7 @@ class MessageAnswer:
                 else:
                     if friend:
                         founded_friends.append(friend)
+                        self.db.add_friend(friend['id'])  # Сохранение контакта в список найденных
                         cnt_finds += 1
 
         if founded_friends:
@@ -137,10 +183,8 @@ class MessageAnswer:
                 # Отправка сообщения
                 self.sender.send_message(**sender_params)
 
-                # Сохранение контакта в список найденных
-                self.db.add_friend(friend['id'])
-
         else:
+            self.db.update_offset(self.cmd.command, 0)
             self.send_message(f'Подходящих контактов не найдено.')
 
     def check_friends(self, list_friends: list):
@@ -148,11 +192,11 @@ class MessageAnswer:
         for user in list_friends:
             if not user['is_closed'] and not self.db.is_friend_or_black(user['id']):
 
-                if (self.user.data.get('city', None) and
-                    self.user.data.get('city', None) != user.get('city', None)) or \
-                        (self.user.data.get('howm_town', None) and
-                         self.user.data.get('howm_town', None) != user.get('howm_town', None)):
-                    continue
+                # if (self.user.data.get('city', None) and
+                #     self.user.data.get('city', None) != user.get('city', None)) or \
+                #         (self.user.data.get('home_town', None) and
+                #          self.user.data.get('home_town', None) != user.get('hometown', None)):
+                #     continue
 
                 photos = self._get_user_photos(user['id'])
                 if photos:
@@ -168,13 +212,15 @@ class MessageAnswer:
             'offset': offset,
             'count': cnt,
             'sex': sex,
-            'fields': 'photo_max, photo_id, sex, bdate, howm_town, status, city, relation, is_closed'
+            'fields': 'photo_max, photo_id, sex, bdate, home_town, status, city, interests,'
+                      'books, music, relation, is_closed'
         }
 
-        if len(self.user.data.get('bdate', None)) > 7:
+        bdate = self.user.data.get('bdate', None)
+        if bdate and len(bdate) > 7:
             # search_params['birth_year'] = self.user.data['bdate'][-4:]
-            search_params['age_from'] = date.today().year - int(self.user.data['bdate'][-4:]) - 1
-            search_params['age_to'] = date.today().year - int(self.user.data['bdate'][-4:]) + 1
+            search_params['age_from'] = date.today().year - int(bdate[-4:]) - 1
+            search_params['age_to'] = date.today().year - int(bdate[-4:]) + 1
 
         if self.user.data.get('city', None):
             search_params['city'] = self.user.data['city']['id']
@@ -252,15 +298,41 @@ class MessageAnswer:
             message += f', пол: {sex}'
 
         # Добавление вывода города человека в сообщение
-        if _dict.get('city', None):
-            city = _dict["city"]["title"]
+        city = _dict.get('city', None)
+        if city:
+            city = _dict['city']['title']
             message += f'\nг. {city}'
+
+        # Добавление вывода родного города человека в сообщение
+        if _dict.get('home_town', None):
+            home_town = _dict['home_town']
+            message += f' (родной город: {home_town})' if city else f'\nРодной город: {home_town}'
 
         # Добавление статус человека в сообщение
         relation = str(_dict.get('relation', 0))
         relation = self.searcher.guide['relation'].get(relation, None)
         if relation:
-            message += f'\nСтатус - {relation}'
+            message += f'\nСемейное положение - {relation}'
+
+        # Добавление статуса человека в сообщение
+        if _dict.get('status', None):
+            value = _dict['status']
+            message += f'\nСтатус: {value}'
+
+        # Добавление интересов человека в сообщение
+        if _dict.get('interests', None):
+            value = _dict['interests']
+            message += f'\nИнтересы: {value}'
+
+        # Добавление любимых книг человека в сообщение
+        if _dict.get('books', None):
+            value = _dict['books']
+            message += f'\nКниги: {value}'
+
+        # Добавление любимой музыки человека в сообщение
+        if _dict.get('music', None):
+            value = _dict['music']
+            message += f'\nМузыка: {value}'
 
         photos = _dict.get('photos', None)
         photo = [f'photo{value["owner_id"]}_{value["photo_id"]}_{self.access_key}' for value in photos]

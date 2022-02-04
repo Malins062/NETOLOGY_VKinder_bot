@@ -181,7 +181,7 @@ class VKBot:
             msg_id = new_event.message_id  # id сообщения
             dt = new_event.timestamp  # время сообщения
             msg = new_event.text  # текст сообщения
-            contact_id = new_event.extra_values.get('payload', None)  # данные нажатой кнопки клавиатуры
+            contact_id = contact_id_from_dict(new_event.extra_values)  # id контакта вызова кнопки
 
             # Создание экземпляра сообщения
             event_data = MessageEventData(uid, msg_id, dt, msg, contact_id)

@@ -6,13 +6,13 @@ import json  # для работы json-данными
 class MessageEventData:
     __slots__ = ('user_id', 'message_id', 'time', 'message_id', 'text', 'text_normalize', 'contact_id')
 
-    def __init__(self, uid: int, msg_id: int, dt: int, body: str, contact_id: str):
+    def __init__(self, uid: int, msg_id: int, dt: int, body: str, contact_id: int):
         self.user_id = uid
         self.message_id = msg_id
         self.time = dt
         self.text = body
         self.text_normalize = get_normalize_set(self.text)
-        self.contact_id = json.loads(contact_id).get('type', None) if contact_id else ''
+        self.contact_id = contact_id
 
     def __repr__(self):
         return self.text
@@ -22,6 +22,17 @@ def fatal(*args):
     """Печатает ошибку - args и выходит"""
     hues.error(f'Ошибка: {args}')
     exit()
+
+
+def contact_id_from_dict(_dict: dict) -> int:
+    result = _dict.get('payload', None)
+    try:
+        result = int(json.loads(result).get('type', None)) if result else None
+    except Exception as Err:
+        hues.warn(f'Ошибка получения contact_id: {Err}')
+        result = None
+
+    return result
 
 
 def progress_indicator(in_title: str, out_title=''):

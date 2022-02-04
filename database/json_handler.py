@@ -62,6 +62,13 @@ class JSONDatabase:
     def clear_search(self):
         self._clear_search_json()
 
+    def clear_user(self):
+        if self._clear_user_json():
+            self._clear_search_json()
+            return f'Ваши личные данные обновлены.'
+        else:
+            return f'Личные данные НЕ ОБНОВЛЕНЫ!'
+
     def clear_favorites(self):
         if self._clear_json_key(self.KEY_FAVORITES):
             return f'Список избранных контактов УДАЛЕН.'
@@ -142,7 +149,7 @@ class JSONDatabase:
 
     def _delete_json_key(self, key: str, contact_id: int):
         try:
-            data = self._read_json() # чтение данных из json файла
+            data = self._read_json()  # чтение данных из json файла
 
             # Удаление контакта из списка по ключу
             if contact_id in data[key]:
@@ -157,7 +164,7 @@ class JSONDatabase:
 
     def _clear_json_key(self, key: str):
         try:
-            data = self._read_json() # чтение данных из json файла
+            data = self._read_json()  # чтение данных из json файла
             data[key] = []  # удаления данных по ключу
             self._write_json(data)  # запись данных в файл
             return True
@@ -170,6 +177,17 @@ class JSONDatabase:
         try:
             data = self._read_json()  # чтение данных из json файла
             data[self.KEY_USER][self.KEY_USER_OFFSET] = [0, 0, 0]  # сброс всех сдвигов поиска
+            self._write_json(data)  # запись данных в файл
+            return True
+
+        except Exception as err:
+            hues.error(f'ОШИБКА удаления данных из файла - {self.file_name}: {err}')
+            return False
+
+    def _clear_user_json(self):
+        try:
+            data = self._read_json()  # чтение данных из json файла
+            data[self.KEY_USER][self.KEY_USER_DATA] = {}  # сброс всех сдвигов поиска
             self._write_json(data)  # запись данных в файл
             return True
 
@@ -215,5 +233,3 @@ class JSONDatabase:
         except Exception as err:
             hues.error(f'ОШИБКА записи данных {data_for_write} в файл - {self.file_name}: {err}')
             return False
-
-
