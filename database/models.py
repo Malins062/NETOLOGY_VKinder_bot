@@ -3,45 +3,34 @@ from vkbot import FILE_SETTINGS  # имя файла параметров
 
 import datetime  # для работы с датой и временем
 
-# Для работы с ORM
-from peewee import PostgresqlDatabase, MySQLDatabase, Model
-from peewee import BigIntegerField, SmallIntegerField, DateTimeField, CharField, TextField, ForeignKeyField, \
-    PrimaryKeyField, IntegerField, UUIDField
-# from playhouse.postgres_ext import JSONField
+# Для работы с ORM БД PostgreSQL
+from peewee import PostgresqlDatabase, Model
+from peewee import SmallIntegerField, DateTimeField, CharField, TextField, ForeignKeyField, BooleanField
+from playhouse.postgres_ext import ArrayField, JSONField
 
 try:
-    from cfg.settings import DATABASE_SETTINGS, DATABASE_DRIVER, DATABASE_CHARSET
+    from cfg.settings import DATABASE_SETTINGS, DATABASE_CHARSET
 except Exception as Error:
-    DATABASE_SETTINGS, DATABASE_DRIVER, DATABASE_CHARSET = (), None, "utf8mb4"
+    DATABASE_SETTINGS, DATABASE_CHARSET = (), "utf8mb4"
     hues.warn(f'Ошибка инициализации подключения к БД: {Error}!\n'
               f'Для использования базы данны проверьте значения параметров '
-              f'(DATABASE_DRIVER, DATABASE_CHARSET, DATABASE_SETTINGS).'
+              f'(DATABASE_SETTINGS, DATABASE_CHARSET).'
               f'в файле - "{FILE_SETTINGS}".')
 
 driver_params = {}
 if DATABASE_CHARSET:
     driver_params['charset'] = DATABASE_CHARSET
 
-if DATABASE_DRIVER == "mysql":
-    driver = MySQLDatabase
-elif DATABASE_DRIVER == "postgresql":
-    driver = PostgresqlDatabase
-else:
-    driver = None
-
 if len(DATABASE_SETTINGS) == 0:
-    db_handler = False
-elif len(DATABASE_SETTINGS) == 1:
-    name, = DATABASE_SETTINGS
-    db_handler = driver(name)
+    db_handler = None
 else:
     name, host, port, user, password = DATABASE_SETTINGS
-    db_handler = driver(name,
-                        host=host,
-                        port=port,
-                        user=user,
-                        password=password,
-                        **driver_params)
+    db_handler = PostgresqlDatabase(name,
+                                    host=host,
+                                    port=port,
+                                    user=user,
+                                    password=password,
+                                    **driver_params)
 
 
 class BaseModel(Model):
@@ -67,7 +56,9 @@ class Users(BaseModel):
     relation = SmallIntegerField(default=0, null=True)  # отношение
     status = TextField(null=True)  # статус пользователя
     home_town = CharField(null=True)  # родной город пользователя
-    city = CharField(null=True)  # город пользователя
+    city = JSONField(null=True)  # город пользователя
+    offset = ArrayField(default=[0, 0, 0])  # сдвиги для поиска
+    must_updated = BooleanField(default=False)  # данные должны быть обновлены
 
     datetime_update = DateTimeField(default=datetime.datetime.now(), null=True)  # дата обновления данных о пользователе
 
@@ -78,9 +69,7 @@ class Users(BaseModel):
 class Friends(BaseModel):
     """Таблица найденных друзей для пользователей"""
     uid = ForeignKeyField(Users, backref='friends')  # id пользователя ВК
-    # uid = CharField(null=False)  # id пользователя ВК
     fid = CharField(index=True, null=False)  # id друга ВК
-    searcher = SmallIntegerField(default=0)  # текущий вариант поиска
 
     class Meta:
         table_name = 'friends'
@@ -88,9 +77,7 @@ class Friends(BaseModel):
 
 class Favorites(BaseModel):
     """Таблица избранных друзей для пользователей"""
-    # uid = ForeignKeyField(Users, backref='uid', null=True)  # id пользователя ВК
     uid = ForeignKeyField(Users, backref='favorites')  # id пользователя ВК
-    # uid = CharField(null=False)  # id пользователя ВК
     fid = CharField(index=True, null=False)  # id друга ВК
     state = SmallIntegerField(default=0, null=False)  # статус друга: 0 - избранный, 1 - заблокированный
 

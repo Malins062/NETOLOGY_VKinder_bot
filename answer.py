@@ -6,12 +6,13 @@ from chatter import Command, Keyboards
 
 class MessageAnswer:
     def __init__(self, vk_search: VKSearcher, vk_sender: VKSender, vk_user: VKUser,
-                 cmd: Command, answer: Keyboards, count_records: int, access_key, db):
+                 cmd: Command, answer: Keyboards, count_records: int, year_offset: int, access_key, db):
         self.searcher = vk_search
         self.sender = vk_sender
         self.user = vk_user
         self.cmd = cmd
         self.count_records = count_records
+        self.year_offset = year_offset
         self.access_key = access_key
         self.db = db
         self.params_receiver = {
@@ -69,8 +70,25 @@ class MessageAnswer:
         _LINE = '-' * 70 + '\n'
         message = _LINE
         message += self.answer_params.get('message_text', '')  # подготовка клавиатуры
-        data = self.db.get_user()  # получение текущей информации пользователя
+        # data = self.db.get_user()  # получение текущей информации пользователя
+        data = self.user.data  # получение текущей информации пользователя
         message += self._user_info(data) if data else '\nЛичные данные пользователя не найдены!\n'
+        message += _LINE
+        message += '\nЖду от Вас команды:'
+        params = {
+            'message_text': message,
+            'keyboard': self.answer_params.get('keyboard', None)
+        }
+
+        self.sender.send_message(**self.params_receiver, **params)
+
+    def list_search_params(self):
+        _LINE = '-' * 70 + '\n'
+        message = _LINE
+        message += self.answer_params.get('message_text', '')  # подготовка клавиатуры
+        data = self.user.data  # получение текущей информации пользователя
+        message += self._search_info(data) if data else '\nПараметры поиска не найдены!\n'
+        message += _LINE
         message += '\nЖду от Вас команды:'
         params = {
             'message_text': message,
@@ -80,7 +98,7 @@ class MessageAnswer:
         self.sender.send_message(**self.params_receiver, **params)
 
     def _user_info(self, _dict: dict) -> str:
-        _EMPTY_DATA = 'Не указано'
+        _EMPTY_DATA = 'не указано'
 
         message = '\nID: ' + str(_dict.get('id', _EMPTY_DATA))
         message += '\nИмя: ' + _dict.get('first_name', _EMPTY_DATA)
@@ -95,12 +113,46 @@ class MessageAnswer:
         message += '\nГород: '
         value = _dict.get('city', None)
         message += _dict['city']['title'] if value else _EMPTY_DATA
-        message += '\nРодной город: ' + _dict.get('home_town', _EMPTY_DATA)
+        message += '\nРодной город = '
+        value = _dict.get('home_town', _EMPTY_DATA)
+        message += value if value else _EMPTY_DATA
 
         message += '\nСемейное положение: '
         value = str(_dict.get('relation', 0))
         value = self.searcher.guide['relation'].get(value, None)
         message += value if value else _EMPTY_DATA
+
+        message += '\n'
+
+        return message
+
+    def _search_info(self, _dict: dict) -> str:
+        _ANY_DATA = 'любое значение'
+
+        message = '\nВозраст '
+        bdate = _dict.get('bdate', '')
+        if bdate and len(bdate) > 7:
+            message += 'от ' + str((date.today().year - int(bdate[-4:]) - self.year_offset))
+            message += ' до ' + str((date.today().year - int(bdate[-4:]) + self.year_offset + 1))
+        else:
+            message = '= ' + _ANY_DATA
+
+        message += '\nПол = '
+        value = str(_dict.get('sex', 0))
+        value = self.searcher.guide['sex'].get(value, None)
+        message += value if value else _ANY_DATA
+
+        message += '\nГород = '
+        value = _dict.get('city', None)
+        message += _dict['city']['title'] if value else _ANY_DATA
+        message += '\nРодной город = '
+        value = _dict.get('home_town', _ANY_DATA)
+        message += value if value else _ANY_DATA
+
+        message += '\nСемейное положение = '
+        value = str(_dict.get('relation', 0))
+        value = self.searcher.guide['relation'].get(value, None)
+        message += value if value else _ANY_DATA
 
         message += '\n'
 
@@ -147,9 +199,8 @@ class MessageAnswer:
     def search_friends(self):
         cnt_finds = 0
         founded_friends = []
+        offset = self.user.data['offset'][self.cmd.command]
         while cnt_finds < self.count_records:
-            offset = self.db.get_offset(self.cmd.command)
-            # offset = self.user.search['offset']
             friends = self._get_friends(self.cmd.command,
                                         offset,
                                         self.count_records)
@@ -159,8 +210,6 @@ class MessageAnswer:
                 offset += cnt_friends
             else:
                 break
-
-            self.db.update_offset(self.cmd.command, offset)
 
             friends = self.check_friends(friends)
 
@@ -174,6 +223,8 @@ class MessageAnswer:
                         cnt_finds += 1
 
         if founded_friends:
+            self.user.data['offset'][self.cmd.command] = offset
+
             self.send_message(f'Показываю {cnt_finds} контактов:')
 
             for friend in founded_friends:
@@ -184,8 +235,10 @@ class MessageAnswer:
                 self.sender.send_message(**sender_params)
 
         else:
-            self.db.update_offset(self.cmd.command, 0)
+            self.user.data['offset'][self.cmd.command] = 0
             self.send_message(f'Подходящих контактов не найдено.')
+
+        self.db.update_offset(self.user)
 
     def check_friends(self, list_friends: list):
         new_friends = []
@@ -219,8 +272,8 @@ class MessageAnswer:
         bdate = self.user.data.get('bdate', None)
         if bdate and len(bdate) > 7:
             # search_params['birth_year'] = self.user.data['bdate'][-4:]
-            search_params['age_from'] = date.today().year - int(bdate[-4:]) - 1
-            search_params['age_to'] = date.today().year - int(bdate[-4:]) + 1
+            search_params['age_from'] = date.today().year - int(bdate[-4:]) - self.year_offset
+            search_params['age_to'] = date.today().year - int(bdate[-4:]) + self.year_offset
 
         if self.user.data.get('city', None):
             search_params['city'] = self.user.data['city']['id']

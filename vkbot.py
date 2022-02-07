@@ -3,6 +3,8 @@ import shutil
 from os.path import isfile
 
 # Дополнительные классы для работы ВК
+import peewee
+
 from vk_classes import VKSearcher, VKSender, VKUser
 
 # Дополнительные свои функции
@@ -27,9 +29,9 @@ FILE_SETTINGS_SAMPLE = 'cfg/settings.py.sample'
 class VKBot:
     """Главный класс бота"""
     # Использование slots для экономии памяти
-    __slots__ = ['ACCESS_TOKEN_GROUP', 'ACCESS_TOKEN_USER', 'GROUP_ID', 'VK_GUIDE_FILE_NAME',
+    __slots__ = ['ACCESS_TOKEN_GROUP', 'ACCESS_TOKEN_USER', 'VK_GUIDE_FILE_NAME',
                  'LOG_COMMANDS', 'LOG_MESSAGES', 'LEXICON_FILE_NAME', 'ANSWER_FILE_NAME',
-                 'COUNT_RECORDS', 'DATABASE_REWRITE', 'DATABASE_JSON',
+                 'COUNT_RECORDS', 'DATABASE_REWRITE', 'DATABASE_JSON', 'YEAR_OFFSET',
                  'vk_group', 'vk_user', 'vk_session', 'vk_searcher', 'vk_sender',
                  'long_poll', 'users', 'chat', 'keyboards', 'db']
 
@@ -44,7 +46,7 @@ class VKBot:
         self.VK_GUIDE_FILE_NAME = None
         self.ANSWER_FILE_NAME = None
         self.LEXICON_FILE_NAME = None
-        self.GROUP_ID = None
+        self.YEAR_OFFSET = None
         self.ACCESS_TOKEN_USER = None
         self.ACCESS_TOKEN_GROUP = None
 
@@ -88,7 +90,6 @@ class VKBot:
                     fatal(f'Проверьте, что у есть "ACCESS_TOKEN_GROUP" и "ACCESS_TOKEN_USER" в файле '
                           f'{FILE_SETTINGS}!\nБез них БОТ работать НЕ СМОЖЕТ!.')
 
-                self.GROUP_ID = settings.GROUP_ID
                 self.LEXICON_FILE_NAME = settings.LEXICON_FILE_NAME
                 self.ANSWER_FILE_NAME = settings.ANSWER_FILE_NAME
                 self.VK_GUIDE_FILE_NAME = settings.VK_GUIDE_FILE_NAME
@@ -99,6 +100,7 @@ class VKBot:
                 self.DATABASE_REWRITE = settings.DATABASE_REWRITE
                 self.DATABASE_JSON = settings.DATABASE_JSON
 
+                self.YEAR_OFFSET = settings.YEAR_OFFSET
                 self.COUNT_RECORDS = settings.COUNT_RECORDS
 
             except (ValueError, AttributeError, NameError):
@@ -110,27 +112,43 @@ class VKBot:
 
     def init_db(self):
         """Функция инициализации подключения к БД и первичная настройка"""
-        self.db = db_handler
-        try:
+        if self._connect_db(db_handler):
             # Подключение к БД
-            self.db.connect(reuse_if_open=True)
+            # self.db.connect(reuse_if_open=True)
+            # db_handler.connect(reuse_if_open=True)
 
             try:
                 # Удаление таблиц
                 if self.DATABASE_REWRITE:
-                    self.db.drop_tables([Users, Friends, Favorites], cascade=True)
+                    # self.db.drop_tables([Users, Friends, Favorites], cascade=True)
+                    db_handler.drop_tables([Users, Friends, Favorites], cascade=True)
 
                 # Создание таблиц
-                self.db.create_tables([Users, Friends, Favorites])
+                # self.db.create_tables([Users, Friends, Favorites])
+                db_handler.create_tables([Users, Friends, Favorites])
 
-            except Exception as Ex:
-                self.db = None
-                hues.warn(f'Ошибка создания таблиц БД: {Ex}')
+            except Exception as Err:
+                # self.db = None
+                hues.warn(f'Ошибка создания таблиц БД: {Err}\n'
+                          f'Необходимо запустить бот с параметром "DATABASE_REWRITE = True" в файле {FILE_SETTINGS}')
 
-        except Exception as Ex:
-            self.db = None
-            hues.warn(f'Ошибка при инициализации работы с БД: {Ex}!\n'
+        # except Exception as Ex:
+        #     self.db = None
+        #     hues.warn(f'Ошибка при инициализации работы с БД: {Ex}!\n'
+        #               f'Дальнейшая работа бота будет продолжена без использования БД.')
+        else:
+            # self.db = None
+            hues.warn(f'Проблемы с инициализацией БД!\n'
                       f'Дальнейшая работа бота будет продолжена без использования БД.')
+
+    @staticmethod
+    def _connect_db(handler):
+        try:
+            handler.connect(reuse_if_open=True)
+            return True
+        except peewee.PeeweeException as Err:
+            hues.warn(f'Ошибка соединения с БД: {Err}!\n')
+            return False
 
     def init_chat(self):
         """Функция инициализации дополнительных данных для чата"""
@@ -191,8 +209,11 @@ class VKBot:
 
             # user_vk = VKUser(self.vk_group, uid)
 
-            # if not self.db:
-            self.db = JSONDatabase(self.DATABASE_JSON, uid)
+            if self._connect_db(db_handler):
+                self.db = PostgreSQLDatabase(self.DATABASE_JSON, uid)
+                self.db.json_to_db()  # миграция данных из JSON в БД
+            else:
+                self.db = JSONDatabase(self.DATABASE_JSON, uid)
 
             vk_user = VKUser(self.vk_group, uid)
             vk_user.data = self.db.get_user()  # получение данных о пользователе из местной БД
@@ -216,7 +237,7 @@ class VKBot:
             hues.info(f'Анализ задачи в полученном сообщении: {cmd.command_description}')
 
         msg_obj = MessageAnswer(self.vk_searcher, self.vk_sender, user_vk,
-                                cmd, self.keyboards, self.COUNT_RECORDS,
+                                cmd, self.keyboards, self.COUNT_RECORDS, self.YEAR_OFFSET,
                                 self.ACCESS_TOKEN_USER, self.db)
         msg_obj.process_message()
 

@@ -1,17 +1,19 @@
-import json
-import hues
-from os.path import isfile
-from vk_classes import VKUser
+import hues  # для цветного вывода сообщений, + время
+import json  # для работы json-данными
+from os.path import isfile  # наличие файла в системе
+from vk_classes import VKUser  # класс пользователя ВК
 
 
 class JSONDatabase:
+    """
+    Класс работы с виртуальной JSON БД, основанной на файлах json
+    """
 
     def __init__(self, path, user_id):
         self.KEY_FRIENDS = 'friends'
         self.KEY_FAVORITES = 'favorites'
         self.KEY_BLACKLIST = 'blacklist'
         self.KEY_USER = 'user'
-        self.KEY_USER_DATA = 'data'
         self.KEY_USER_OFFSET = 'offset'
 
         self.json_path = path
@@ -20,17 +22,13 @@ class JSONDatabase:
 
     def get_user(self) -> dict:
         data = self._read_json_key(self.KEY_USER)
-        return data.get(self.KEY_USER_DATA, False) if isinstance(data, dict) else False
+        return data if isinstance(data, dict) and data.get('id', False) else False
 
     def update_user(self, user: VKUser):
         self._update_user_json(user)
 
-    def get_offset(self, index: int):
-        data = self._read_json_key(self.KEY_USER)
-        return data.get(self.KEY_USER_OFFSET, [0, 0, 0])[index] if isinstance(data, dict) else 0
-
-    def update_offset(self, index: int, value_offset: int):
-        self._update_offset_json(index, value_offset)
+    def update_offset(self, user: VKUser):
+        self._update_user_json(user)
 
     def add_friend(self, vk_id: int):
         self._append_json(self.KEY_FRIENDS, vk_id)
@@ -64,7 +62,6 @@ class JSONDatabase:
 
     def clear_user(self):
         if self._clear_user_json():
-            self._clear_search_json()
             return f'Ваши личные данные обновлены.'
         else:
             return f'Личные данные НЕ ОБНОВЛЕНЫ!'
@@ -96,7 +93,7 @@ class JSONDatabase:
     def is_friend_or_black(self, vk_id: int):
         try:
             data = self._read_json()  # чтение данных из json файла
-            return vk_id in data[self.KEY_FRIENDS] or vk_id in data[self.KEY_BLACKLIST]
+            return vk_id in (data[self.KEY_FRIENDS], data[self.KEY_BLACKLIST], data[self.KEY_FAVORITES])
 
         except Exception as err:
             hues.warn(f'ОШИБКА чтения данных из файла - {self.file_name}: {err}')
@@ -117,29 +114,15 @@ class JSONDatabase:
             hues.warn(f'ОШИБКА добавления данных в файл - {self.file_name}: {err}')
             return False
 
-    def _update_offset_json(self, index: int, value_offset: int):
-        try:
-            data = self._read_json()  # чтение данных из json файла
-
-            if self.KEY_USER not in data:
-                data[self.KEY_USER] = {}
-
-            data[self.KEY_USER][self.KEY_USER_OFFSET][index] = value_offset  # сохранение информации о сдвиге поиска
-            self._write_json(data)  # запись данных в файл
-            return True
-
-        except Exception as err:
-            hues.warn(f'ОШИБКА обновления данных в файле - {self.file_name}: {err}')
-            return False
-
     def _update_user_json(self, user_data: VKUser):
         try:
             data = self._read_json()  # чтение данных из json файла
 
-            if self.KEY_USER not in data:
-                data[self.KEY_USER] = {}
+            data[self.KEY_USER] = user_data.data  # сохранение информации о пользователе
 
-            data[self.KEY_USER][self.KEY_USER_DATA] = user_data.data  # сохранение информации о пользователе
+            if self.KEY_USER_OFFSET not in data[self.KEY_USER]:
+                data[self.KEY_USER][self.KEY_USER_OFFSET] = [0, 0, 0]
+
             self._write_json(data)  # запись данных в файл
             return True
 
@@ -187,7 +170,7 @@ class JSONDatabase:
     def _clear_user_json(self):
         try:
             data = self._read_json()  # чтение данных из json файла
-            data[self.KEY_USER][self.KEY_USER_DATA] = {}  # сброс всех сдвигов поиска
+            data[self.KEY_USER] = {}  # сброс всех данных пользователя
             self._write_json(data)  # запись данных в файл
             return True
 
@@ -211,7 +194,7 @@ class JSONDatabase:
                 self.KEY_FRIENDS: [],
                 self.KEY_FAVORITES: [],
                 self.KEY_BLACKLIST: [],
-                self.KEY_USER: {self.KEY_USER_DATA: {}, self.KEY_USER_OFFSET: [0, 0, 0]}
+                self.KEY_USER: {self.KEY_USER_OFFSET: [0, 0, 0]}
             }
 
             if isfile(self.file_name):

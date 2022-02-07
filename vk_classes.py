@@ -19,6 +19,7 @@ class VKUser:
         try:
             # Данные пользователя ВК
             self.data = self.vk_api_object.users.get(**params)[0]
+            self.data['offset'] = [0, 0, 0]
 
             if self.data.get('first_name', None) and self.data.get('first_name', None):
                 self.data['name'] = f'{self.data["first_name"]} {self.data["last_name"]}'
@@ -62,7 +63,7 @@ class VKSearcher:
 
     def get_cities_by_id(self, **kwargs):
         """
-        Поиск названий городов ВК по идентификаторам городов
+        Поиск названий городов в ВК, по их идентификаторам.
         :param kwargs: параметры запроса (список идентификаторов городов...)
         :return: список названий городов
         """

@@ -20,6 +20,7 @@ class MessageEventData:
 
 def fatal(*args):
     """Печатает ошибку - args и выходит"""
+
     hues.error(f'Ошибка: {args}')
     exit()
 
