@@ -5,7 +5,8 @@ import datetime  # для работы с датой и временем
 
 # Для работы с ORM БД PostgreSQL
 from peewee import PostgresqlDatabase, Model
-from peewee import SmallIntegerField, DateTimeField, CharField, TextField, ForeignKeyField, BooleanField
+from peewee import SmallIntegerField, DateTimeField, CharField, TextField, ForeignKeyField, \
+    BooleanField, PrimaryKeyField
 from playhouse.postgres_ext import ArrayField, JSONField
 
 try:
@@ -60,7 +61,7 @@ class Users(BaseModel):
     offset = ArrayField(default=[0, 0, 0])  # сдвиги для поиска
     must_updated = BooleanField(default=False)  # данные должны быть обновлены
 
-    datetime_update = DateTimeField(default=datetime.datetime.now(), null=True)  # дата обновления данных о пользователе
+    datetime_update = DateTimeField(default=datetime.datetime.now(), null=True)  # дата и время обновления пользователя
 
     class Meta:
         table_name = 'users'
@@ -83,3 +84,13 @@ class Favorites(BaseModel):
 
     class Meta:
         table_name = 'favorites'
+
+#
+# class Logs(BaseModel):
+#     """Таблица логирования"""
+#     id = PrimaryKeyField(unique=True)
+#     message_text = TextField(null=True)  # сообщение
+#     datetime_update = DateTimeField(default=datetime.datetime.now(), null=True)  # дата и время сообщения
+#
+#     class Meta:
+#         table_name = 'logs'

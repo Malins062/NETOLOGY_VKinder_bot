@@ -122,6 +122,23 @@
   "81": {
     "message_text": "ПАРАМЕТРЫ ПОИСКА ДРУЗЕЙ\n"
   },
+  "90": {
+    "keyboard": {
+      "one_time": false,
+      "inline": true,
+      "buttons": [
+        [
+          {
+            "action": {
+              "type": "text",
+              "label": "Поделиться с друзьями"
+            },
+            "color": "primary"
+          }
+        ]
+      ]
+    }
+  },
   "0": {
     "keyboard": {
       "one_time": false,

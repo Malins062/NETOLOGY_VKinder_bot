@@ -20,10 +20,14 @@ class Chatter:
     """Лексикон бота и обработка сообщений"""
     __slots__ = ('lexicon', 'questions')
 
+    description = None
+
     def __init__(self, file_name):
         try:
             # Загрузка лексикона
             self.lexicon = read_json(file_name)
+
+            description = self.lexicon.get('description', '')
 
             # Создание общего списка словаря запросов и разбиение по темам
             self.questions = self._create_vocabulary()

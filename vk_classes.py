@@ -50,6 +50,17 @@ class VKSearcher:
 
         return result
 
+    def get_user_friends(self, **kwargs):
+        """
+        Поиск друзей пользователя ВК по критериям которые необходимо вытащить.
+        :param kwargs: параметры запроса (id, город и т.д.)
+        :return: список пользователей
+        """
+        # Получение сведений из ВК методом users.search
+        result = self.vk.friends.get(**kwargs)
+
+        return result
+
     def get_users_photos(self, **kwargs):
         """
         Поиск фотографий пользователей ВК по критериям которые необходимо вытащить

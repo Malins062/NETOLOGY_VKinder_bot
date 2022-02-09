@@ -3,6 +3,13 @@ from datetime import date
 from vk_classes import VKSender, VKSearcher, VKUser
 from chatter import Command, Keyboards
 
+from cfg import settings
+
+try:
+    BOT_DESCRIPTION = settings.BOT_DESCRIPTION
+except (ValueError, AttributeError, NameError):
+    BOT_DESCRIPTION = ''
+
 
 class MessageAnswer:
     def __init__(self, vk_search: VKSearcher, vk_sender: VKSender, vk_user: VKUser,
@@ -36,6 +43,25 @@ class MessageAnswer:
             'message_text': message_text
         }
         self.sender.send_message(**self.params_receiver, **params)
+
+    def send_users_message(self):
+        cnt = 0
+        for user_id in self._get_user_friends():
+            message_text = BOT_DESCRIPTION
+            params = {
+                'receiver_user_id': user_id,
+                'message_text': message_text
+            }
+            self.sender.send_message(**params)
+            cnt += 1
+
+        self.send_message(f'Приглашение успешно отправлено друзьям!\n Адресатов - {cnt}.' if cnt > 0 else
+                          'Друзей не найдено, приглашения не отправлены.')
+
+    def send_help_message(self):
+        message_text = BOT_DESCRIPTION
+        params = self.answer.keyboard.get('90', None)  # подготовка клавиатуры
+        self.sender.send_message(**self.params_receiver, message_text=message_text, **params)
 
     def send_main_answer(self):
         params = self.answer.keyboard.get('99', None)  # подготовка клавиатуры
@@ -257,7 +283,16 @@ class MessageAnswer:
 
         return new_friends
 
-    def _get_friends(self, sex, offset, cnt):
+    def _get_friends(self, sex: int, offset: int, cnt: int) -> list:
+        """
+        Функция поиска подходящих контактов по семейному положению, городу, возрасту, полу и т.д. для пользователя
+        self.user_id ВК.
+        :param sex: пол.
+        :param offset: смещение сдвига поиска.
+        :param cnt: количество строк поиска выдаваемых за 1 раз.
+        :return: список подходящих контактов.
+        """
+
         # Параметры запроса поиска друзей
         search_params = {
             'sort': 0,
@@ -291,7 +326,33 @@ class MessageAnswer:
 
         return friends
 
+    def _get_user_friends(self) -> list:
+        """
+        Функция выдачи списка id друзей для контакта ВК
+        :return: список id друзей
+        :rtype: list
+        """
+
+        # Параметры запроса поиска друзей пользователя ВК
+        search_params = {
+            'user_id': self.user.user_id
+        }
+        result = self.searcher.get_user_friends(**search_params)
+
+        if not result.get('count', 0):
+            return []
+
+        friends = result.get('items', None)
+
+        return friends
+
     def _get_user_photos(self, owner_id) -> dict:
+        """
+        Функция выдачи словаря параметров 3-х лучших фотографий для пользователя owner_id
+        :param owner_id: id пользователя ВК
+        :return: словарь параметров фотографий
+        :rtype: dict
+        """
 
         # Параметры запроса
         photos_params = {
